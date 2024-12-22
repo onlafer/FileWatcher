@@ -1,0 +1,24 @@
+# .NET
+bin/
+obj/
+*.sln
+*.csproj
+*.suo
+*.user
+*.userprefs
+
+# npm
+node_modules/
+package-lock.json
+
+# Логи
+*.log
+
+# Конфиденциальные файлы
+config.json
+
+# Прочие
+*.db
+*.pdb
+*.cache
+*.vs/
