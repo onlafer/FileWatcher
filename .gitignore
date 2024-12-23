@@ -22,3 +22,5 @@ config.json
 *.pdb
 *.cache
 *.vs/
+.vscode/
+TestDir/
