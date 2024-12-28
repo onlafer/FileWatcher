@@ -2,128 +2,193 @@ using System.Runtime.CompilerServices;
 
 namespace FileWatcher.Utilities
 {
-    public enum LogLevel
+    public abstract class LogLevel
     {
-        DEBUG,
-        INFO,
-        SUCCESS,
-        WARNING,
-        ERROR,
-        FATAL
+        public abstract string Name { get; }
+        public abstract ConsoleColor Color { get; }
+        public virtual void HandleLog(string message, Exception? exception = null) { }
+    }
+
+    public class DebugLevel : LogLevel
+    {
+        public override string Name { get; } = "DEBUG";
+        public override ConsoleColor Color { get; } = ConsoleColor.Cyan;
+    }
+
+    public class InfoLevel : LogLevel
+    {
+        public override string Name { get; } = "INFO";
+        public override ConsoleColor Color { get; } = ConsoleColor.White;
+    }
+
+    public class SuccessLevel : LogLevel
+    {
+        public override string Name { get; } = "SUCCESS";
+        public override ConsoleColor Color { get; } = ConsoleColor.Green;
+    }
+
+    public class WarningLevel : LogLevel
+    {
+        public override string Name { get; } = "WARNING";
+        public override ConsoleColor Color { get; } = ConsoleColor.Yellow;
+    }
+
+    public class ErrorLevel : LogLevel
+    {
+        public override string Name { get; } = "ERROR";
+        public override ConsoleColor Color { get; } = ConsoleColor.Red;
+        public override void HandleLog(string message, Exception? exception = null)
+        {
+            if (exception == null)
+            {
+                throw new Exception($"Error: {message}");
+            }
+
+            throw new Exception($"Error: {message}", exception);
+        }
+    }
+
+    public class FatalLevel : LogLevel
+    {
+        public override string Name { get; } = "FATAL";
+        public override ConsoleColor Color { get; } = ConsoleColor.DarkRed;
+        public override void HandleLog(string message, Exception? exception = null)
+        {
+            if (exception == null)
+            {
+                throw new Exception($"Fatal Error: {message}");
+            }
+
+            throw new Exception($"Fatal Error: {message}", exception);
+        }
     }
 
     public class LogMessage
     {
+        public DateTime DateTimeNow { get; }
         public LogLevel Level { get; }
         public string Text { get; }
         public string Module { get; }
         public string Function { get; }
         public int LineNumber { get; }
 
-        public LogMessage(
-            LogLevel level = LogLevel.INFO,
-            string text = "",
-            [CallerFilePath] string module = "",
-            [CallerMemberName] string function = "",
-            [CallerLineNumber] int lineNumber = 0
-        )
+        public LogMessage(LogLevel level, string text, string module, string function, int lineNumber)
         {
+            DateTimeNow = DateTime.Now;
             Level = level;
             Text = text;
             Module = module;
             Function = function;
             LineNumber = lineNumber;
         }
+
+        public override string ToString()
+        {
+            return $"{DateTimeNow:yyyy-MM-dd HH:mm:ss.fff} | {Level.Name,-8} | {Module}:{Function}:{LineNumber} | {Text}";
+        }
     }
 
     public class Logger
     {
-        private ConsoleColor _originalConsoleColor = Console.ForegroundColor;
-
         public string LogFilePath { get; set; }
+        private ConsoleColor OriginalConsoleColor { get; }
         public string DateTimeFormat { get; set; } = "yyyy-MM-dd HH:mm:ss.fff";
-        public Dictionary<LogLevel, ConsoleColor> LogLevelColors { get; set; } = new Dictionary<LogLevel, ConsoleColor>
-        {
-            { LogLevel.DEBUG, ConsoleColor.White },
-            { LogLevel.INFO, ConsoleColor.Green },
-            { LogLevel.WARNING, ConsoleColor.Yellow },
-            { LogLevel.ERROR, ConsoleColor.Red },
-            { LogLevel.FATAL, ConsoleColor.DarkRed }
-        };
 
         public Logger(string logFilePath = "")
         {
             LogFilePath = logFilePath;
+            OriginalConsoleColor = Console.ForegroundColor;
         }
 
         public static void Log(
-            LogLevel level = LogLevel.INFO,
-            string text = "",
+            LogLevel level,
+            string text,
             [CallerFilePath] string module = "",
             [CallerMemberName] string function = "",
             [CallerLineNumber] int lineNumber = 0,
             bool logToConsole = true,
             bool logToFile = false,
-            string logFilePath = ""
+            string logFilePath = "",
+            bool enableHandler = true,
+            Exception? exception = null
         )
         {
-            new Logger(logFilePath).Log(new LogMessage(level, text, module, function, lineNumber), logToConsole, logToFile);
+            new Logger(logFilePath).Log(level, text, module, function, lineNumber, logToConsole, logToFile, enableHandler, exception);
         }
 
         public void Log(
-            LogMessage message,
+            LogLevel level,
+            string text,
+            [CallerFilePath] string module = "",
+            [CallerMemberName] string function = "",
+            [CallerLineNumber] int lineNumber = 0,
             bool logToConsole = true,
-            bool logToFile = true
+            bool logToFile = true,
+            bool enableHandler = true,
+            Exception? exception = null
         )
         {
-            string datetime = DateTime.Now.ToString(DateTimeFormat);
+            var message = new LogMessage(level, text, module, function, lineNumber);
 
             if (logToConsole)
             {
-                LogToConsole(datetime, message);
+                LogToConsole(message);
             }
 
             if (logToFile)
             {
-                LogToFile(datetime, message);
+                LogToFile(message);
             }
 
-            if (message.Level == LogLevel.FATAL)
+            if (enableHandler)
             {
-                throw new FatalLogException(message.Text);
-            }
-            if (message.Level == LogLevel.ERROR)
-            {
-                throw new ErrorLogException(message.Text);
+                level.HandleLog(text, exception);
             }
         }
 
-        private void LogToConsole(string datetime, LogMessage message)
+        private void LogToConsole(LogMessage message)
         {
             Console.ForegroundColor = ConsoleColor.Cyan;
-            Console.Write(datetime);
+            Console.Write(message.DateTimeNow.ToString(DateTimeFormat));
             WriteSeparator();
 
-            Console.ForegroundColor = LogLevelColors[message.Level];
-            Console.Write($"{message.Level,-8}");
+            Console.ForegroundColor = message.Level.Color;
+            Console.Write($"{message.Level.Name,-8}");
             WriteSeparator();
 
             Console.ForegroundColor = ConsoleColor.Magenta;
-            Console.Write(message.Module);
+            Console.Write($"{message.Module}");
             WriteSeparator(":");
 
             Console.ForegroundColor = ConsoleColor.Magenta;
-            Console.Write(message.Function);
+            Console.Write($"{message.Function}");
             WriteSeparator(":");
 
             Console.ForegroundColor = ConsoleColor.Magenta;
-            Console.Write(message.LineNumber);
+            Console.Write($"{message.LineNumber}");
             WriteSeparator();
 
             Console.ForegroundColor = ConsoleColor.Blue;
             Console.WriteLine(message.Text);
 
-            SetOriginalConsoleColor();
+            Console.ForegroundColor = OriginalConsoleColor;
+        }
+
+        public void LogException(
+            LogLevel level,
+            Exception ex,
+            [CallerFilePath] string module = "",
+            [CallerMemberName] string function = "",
+            [CallerLineNumber] int lineNumber = 0,
+            bool rethrow = false
+        )
+        {
+            this.Log(level, ex.Message, module: module, function: function, lineNumber: lineNumber, enableHandler: false, exception: ex);
+
+            if (rethrow)
+            {
+                throw ex;
+            }
         }
 
         private void WriteSeparator(string sep = " | ")
@@ -134,38 +199,20 @@ namespace FileWatcher.Utilities
 
         private void SetOriginalConsoleColor()
         {
-            Console.ForegroundColor = _originalConsoleColor;
+            Console.ForegroundColor = OriginalConsoleColor;
         }
 
-        private void LogToFile(string datetime, LogMessage message)
+        private void LogToFile(LogMessage message)
         {
-            if (string.IsNullOrEmpty(LogFilePath))
-            {
-                Log(new LogMessage(LogLevel.WARNING, "Не передан путь к файлу лога. Логирование в файл не будет произведено"), logToConsole: true, logToFile: false);
-                return;
-            }
-
             if (!File.Exists(LogFilePath))
             {
-                Log(new LogMessage(LogLevel.WARNING, $"Файл лога не найден. Создан новый файл по пути: {LogFilePath}"), logToConsole: true, logToFile: false);
-                File.Create(LogFilePath).Close();
+                Logger.Log(new FatalLevel(), text: $"Передан неверный путь к лог файлу. Переданный путь: '{LogFilePath}'");
             }
 
-            string logEntry = $"{datetime} | {message.Level,-8} | {message.Module}:{message.Function}:{message.LineNumber} | {message.Text}";
             using (StreamWriter writer = new StreamWriter(LogFilePath, true))
             {
-                writer.WriteLine(logEntry);
+                writer.WriteLine(message);
             }
         }
-    }
-
-    public class FatalLogException : Exception
-    {
-        public FatalLogException(string message) : base(message) { }
-    }
-
-    public class ErrorLogException : Exception
-    {
-        public ErrorLogException(string message) : base(message) { }
     }
 }

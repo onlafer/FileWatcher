@@ -8,7 +8,7 @@ namespace FileWatcher.Utilities
         {
             if (!File.Exists(JsonFilePath))
             {
-                Logger.Log(LogLevel.FATAL, text: $"Передан неверный путь к json файлу. Переданный путь: '{JsonFilePath}'");
+                Logger.Log(new FatalLevel(), text: $"Передан неверный путь к json файлу. Переданный путь: '{JsonFilePath}'");
                 throw new FileNotFoundException();
             }
 
@@ -18,7 +18,7 @@ namespace FileWatcher.Utilities
             }
             catch (Exception)
             {
-                Logger.Log(LogLevel.FATAL, text: $"Ошибка при чтении json файла. Переданный путь: '{JsonFilePath}'");
+                Logger.Log(new FatalLevel(), text: $"Ошибка при чтении json файла. Переданный путь: '{JsonFilePath}'");
                 throw;
             }
         }
@@ -31,8 +31,7 @@ namespace FileWatcher.Utilities
             }
             catch (Exception)
             {
-                Logger.Log(LogLevel.FATAL, text: $"Ошибка при записи json файла. Переданный путь: '{filePath}'");
-                throw;
+                Logger.Log(new FatalLevel(), text: $"Ошибка при записи json файла. Переданный путь: '{filePath}'");
             }
         }
 
@@ -49,7 +48,7 @@ namespace FileWatcher.Utilities
             }
             catch (Exception)
             {
-                Logger.Log(LogLevel.FATAL, text: $"Ошибка при сериализации json файла. Переданный путь: '{filePath}'");
+                Logger.Log(new FatalLevel(), text: $"Ошибка при сериализации json файла. Переданный путь: '{filePath}'");
                 throw;
             }
         }

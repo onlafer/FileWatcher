@@ -31,7 +31,7 @@ namespace FileWatcher.Services
         {
             if (!Directory.Exists(watchedDir.Path))
             {
-                _logger.Log(LogLevel.ERROR, text: $"Директория переданная в конфиг не существует. Переданный путь: {watchedDir.Path}");
+                _logger.Log(new WarningLevel(), text: $"Директория переданная в конфиг не существует. Переданный путь: {watchedDir.Path}");
                 return;
             }
             string fullPath = watchedDir.Path;
@@ -54,7 +54,7 @@ namespace FileWatcher.Services
             watcher.Renamed += (sender, eventArgs) => HandleEvent(watchedDir, "renamed", eventArgs.OldFullPath, newPath: eventArgs.FullPath);
 
             _watchers.Add(watcher);
-            _logger.Log(LogLevel.INFO, $"Наблюдение запущено для: {fullPath}");
+            _logger.Log(new InfoLevel(), $"Наблюдение запущено для: {fullPath}");
         }
 
         private void HandleEvent(WatchedDirectory watchedDir, string eventType, string fullPath, string? newPath = null)
@@ -82,7 +82,7 @@ namespace FileWatcher.Services
                 case "renamed":
                     return watchedDir.FileActions.Renamed;
                 default:
-                    _logger.Log(LogLevel.WARNING, text: $"Неизвестное событие: {eventType}. Задействованная директория: {watchedDir.Path}");
+                    _logger.Log(new WarningLevel(), text: $"Неизвестное событие: {eventType}. Задействованная директория: {watchedDir.Path}");
                     return null;
             }
         }

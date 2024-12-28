@@ -1,4 +1,5 @@
-﻿using FileWatcher.Config;
+﻿using System.Runtime.CompilerServices;
+using FileWatcher.Config;
 using FileWatcher.Services;
 using FileWatcher.Utilities;
 
@@ -9,9 +10,11 @@ public class Program
         Logger logger = new Logger("Logs\\log.txt");
         ConfigManager? config = JsonHelper.ReadConfig<ConfigManager>("Config\\config.json");
 
+        // logger.Log(new FatalLevel(), "Не удалось загрузить конфигурацию.");
+
         if (config != null)
         {
-            logger.Log(new LogMessage(text: "Начало наблюдения за директориями."));
+            logger.Log(new InfoLevel(), text: "Начало наблюдения за директориями.");
             FileWatcherService service = new FileWatcherService(config, logger);
             service.StartWatching();
 
@@ -19,11 +22,11 @@ public class Program
             Console.ReadLine();
 
             service.StopWatching();
-            logger.Log(new LogMessage(text: "Конец наблюдения за директориями."));
+            logger.Log(new InfoLevel(), text: "Конец наблюдения за директориями.");
         }
         else
         {
-            logger.Log(new LogMessage(LogLevel.FATAL, "Не удалось загрузить конфигурацию."));
+            logger.Log(new FatalLevel(), "Не удалось загрузить конфигурацию.");
         }
     }
 }
