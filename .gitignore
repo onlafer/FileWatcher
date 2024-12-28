@@ -12,7 +12,7 @@ node_modules/
 package-lock.json
 
 # Логи
-*.log
+Logs/
 
 # Конфиденциальные файлы
 config.json
@@ -23,4 +23,4 @@ config.json
 *.cache
 *.vs/
 .vscode/
-TestDir/
+Tests/

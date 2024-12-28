@@ -1,19 +1,29 @@
-﻿using FileWatcher.Utilities;
-using FileWatcher.Config;
-using System.Text.Json;
+﻿using FileWatcher.Config;
+using FileWatcher.Services;
+using FileWatcher.Utilities;
 
-namespace FileWatcher
+public class Program
 {
-    class Program
+    public static void Main(string[] args)
     {
-        static void Main(string[] args)
-        {
-            // Logger.
-            Logger logger = new Logger("log.log");
-            // Config config = JsonSerializer.Deserialize<Config>(JsonHelper.GetJsonString("Config\\config.json"));
+        Logger logger = new Logger("Logs\\log.txt");
+        ConfigManager? config = JsonHelper.ReadConfig<ConfigManager>("Config\\config.json");
 
-            logger.Log(LogLevel.Warning, text: "Начало работы программы");
-            logger.Log(LogLevel.Info, text: "Конец работы программы");
+        if (config != null)
+        {
+            logger.Log(new LogMessage(text: "Начало наблюдения за директориями."));
+            FileWatcherService service = new FileWatcherService(config, logger);
+            service.StartWatching();
+
+            Console.WriteLine("Нажмите Enter для завершения наблюдения...");
+            Console.ReadLine();
+
+            service.StopWatching();
+            logger.Log(new LogMessage(text: "Конец наблюдения за директориями."));
+        }
+        else
+        {
+            logger.Log(new LogMessage(LogLevel.FATAL, "Не удалось загрузить конфигурацию."));
         }
     }
 }

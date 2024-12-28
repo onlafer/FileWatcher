@@ -8,18 +8,17 @@ namespace FileWatcher.Utilities
         {
             if (!File.Exists(JsonFilePath))
             {
-                Logger.Log(LogLevel.Error, text: $"Передан неверный путь к json файлу. Переданный путь: '{JsonFilePath}'");
+                Logger.Log(LogLevel.FATAL, text: $"Передан неверный путь к json файлу. Переданный путь: '{JsonFilePath}'");
                 throw new FileNotFoundException();
             }
 
             try
             {
-                string json = File.ReadAllText(JsonFilePath);
-                return json;
+                return File.ReadAllText(JsonFilePath);
             }
             catch (Exception)
             {
-                Logger.Log(LogLevel.Error, text: $"Ошибка при чтении json файла. Переданный путь: '{JsonFilePath}'");
+                Logger.Log(LogLevel.FATAL, text: $"Ошибка при чтении json файла. Переданный путь: '{JsonFilePath}'");
                 throw;
             }
         }
@@ -32,24 +31,27 @@ namespace FileWatcher.Utilities
             }
             catch (Exception)
             {
-                Logger.Log(LogLevel.Error, text: $"Ошибка при записи json файла. Переданный путь: '{filePath}'");
+                Logger.Log(LogLevel.FATAL, text: $"Ошибка при записи json файла. Переданный путь: '{filePath}'");
                 throw;
             }
         }
 
-        // public static Dictionary<string, string> GetDictionary(string JsonFilePath)
-        // {
-        //     string json = GetJsonString(JsonFilePath);
-        //     try
-        //     {
-        //         Dictionary<string, string> dictionary = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
-        //         return dictionary;
-        //     }
-        //     catch (Exception)
-        //     {
-        //         Logger.Log(LogLevel.Error, text: $"Ошибка при десериализации json файла. Переданный путь: '{JsonFilePath}'");
-        //         throw;
-        //     }
-        // }
+        public static T? ReadConfig<T>(string filePath) where T : class
+        {
+            try
+            {
+                string jsonString = JsonHelper.GetJsonString(filePath);
+                JsonSerializerOptions options = new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                };
+                return JsonSerializer.Deserialize<T>(jsonString, options);
+            }
+            catch (Exception)
+            {
+                Logger.Log(LogLevel.FATAL, text: $"Ошибка при сериализации json файла. Переданный путь: '{filePath}'");
+                throw;
+            }
+        }
     }
 }

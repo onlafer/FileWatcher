@@ -4,10 +4,36 @@ namespace FileWatcher.Utilities
 {
     public enum LogLevel
     {
-        Debug,
-        Info,
-        Warning,
-        Error
+        DEBUG,
+        INFO,
+        SUCCESS,
+        WARNING,
+        ERROR,
+        FATAL
+    }
+
+    public class LogMessage
+    {
+        public LogLevel Level { get; }
+        public string Text { get; }
+        public string Module { get; }
+        public string Function { get; }
+        public int LineNumber { get; }
+
+        public LogMessage(
+            LogLevel level = LogLevel.INFO,
+            string text = "",
+            [CallerFilePath] string module = "",
+            [CallerMemberName] string function = "",
+            [CallerLineNumber] int lineNumber = 0
+        )
+        {
+            Level = level;
+            Text = text;
+            Module = module;
+            Function = function;
+            LineNumber = lineNumber;
+        }
     }
 
     public class Logger
@@ -18,10 +44,11 @@ namespace FileWatcher.Utilities
         public string DateTimeFormat { get; set; } = "yyyy-MM-dd HH:mm:ss.fff";
         public Dictionary<LogLevel, ConsoleColor> LogLevelColors { get; set; } = new Dictionary<LogLevel, ConsoleColor>
         {
-            { LogLevel.Debug, ConsoleColor.Cyan },
-            { LogLevel.Info, ConsoleColor.Green },
-            { LogLevel.Warning, ConsoleColor.Yellow },
-            { LogLevel.Error, ConsoleColor.Red }
+            { LogLevel.DEBUG, ConsoleColor.White },
+            { LogLevel.INFO, ConsoleColor.Green },
+            { LogLevel.WARNING, ConsoleColor.Yellow },
+            { LogLevel.ERROR, ConsoleColor.Red },
+            { LogLevel.FATAL, ConsoleColor.DarkRed }
         };
 
         public Logger(string logFilePath = "")
@@ -30,25 +57,21 @@ namespace FileWatcher.Utilities
         }
 
         public static void Log(
-            LogLevel level = LogLevel.Info,
+            LogLevel level = LogLevel.INFO,
+            string text = "",
             [CallerFilePath] string module = "",
             [CallerMemberName] string function = "",
             [CallerLineNumber] int lineNumber = 0,
-            string text = "",
             bool logToConsole = true,
             bool logToFile = false,
             string logFilePath = ""
         )
         {
-            new Logger(logFilePath).Log(level, module, function, lineNumber, text, logToConsole, logToFile);
+            new Logger(logFilePath).Log(new LogMessage(level, text, module, function, lineNumber), logToConsole, logToFile);
         }
 
         public void Log(
-            LogLevel level = LogLevel.Info,
-            [CallerFilePath] string module = "",
-            [CallerMemberName] string function = "",
-            [CallerLineNumber] int lineNumber = 0,
-            string text = "",
+            LogMessage message,
             bool logToConsole = true,
             bool logToFile = true
         )
@@ -57,39 +80,48 @@ namespace FileWatcher.Utilities
 
             if (logToConsole)
             {
-                LogToConsole(datetime, level, module, function, lineNumber, text);
+                LogToConsole(datetime, message);
             }
 
             if (logToFile)
             {
-                LogToFile(datetime, level, module, function, lineNumber, text);
+                LogToFile(datetime, message);
+            }
+
+            if (message.Level == LogLevel.FATAL)
+            {
+                throw new FatalLogException(message.Text);
+            }
+            if (message.Level == LogLevel.ERROR)
+            {
+                throw new ErrorLogException(message.Text);
             }
         }
 
-        private void LogToConsole(string datetime, LogLevel level, string module, string function, int lineNumber, string text)
+        private void LogToConsole(string datetime, LogMessage message)
         {
             Console.ForegroundColor = ConsoleColor.Cyan;
             Console.Write(datetime);
             WriteSeparator();
 
-            Console.ForegroundColor = LogLevelColors[level];
-            Console.Write($"{level,-8}");
+            Console.ForegroundColor = LogLevelColors[message.Level];
+            Console.Write($"{message.Level,-8}");
             WriteSeparator();
 
             Console.ForegroundColor = ConsoleColor.Magenta;
-            Console.Write(module);
+            Console.Write(message.Module);
             WriteSeparator(":");
 
             Console.ForegroundColor = ConsoleColor.Magenta;
-            Console.Write(function);
+            Console.Write(message.Function);
             WriteSeparator(":");
 
             Console.ForegroundColor = ConsoleColor.Magenta;
-            Console.Write(lineNumber);
+            Console.Write(message.LineNumber);
             WriteSeparator();
 
             Console.ForegroundColor = ConsoleColor.Blue;
-            Console.WriteLine(text);
+            Console.WriteLine(message.Text);
 
             SetOriginalConsoleColor();
         }
@@ -105,19 +137,35 @@ namespace FileWatcher.Utilities
             Console.ForegroundColor = _originalConsoleColor;
         }
 
-        private void LogToFile(string datetime, LogLevel level, string module, string function, int lineNumber, string text)
+        private void LogToFile(string datetime, LogMessage message)
         {
-            if (!File.Exists(LogFilePath))
+            if (string.IsNullOrEmpty(LogFilePath))
             {
-                Logger.Log(LogLevel.Error, text: $"Передан неверный путь к лог файлу. Переданный путь: '{LogFilePath}'");
-                throw new FileNotFoundException();
+                Log(new LogMessage(LogLevel.WARNING, "Не передан путь к файлу лога. Логирование в файл не будет произведено"), logToConsole: true, logToFile: false);
+                return;
             }
 
-            string logEntry = $"{datetime} | {level,-8} | {module}:{function}:{lineNumber} | {text}";
+            if (!File.Exists(LogFilePath))
+            {
+                Log(new LogMessage(LogLevel.WARNING, $"Файл лога не найден. Создан новый файл по пути: {LogFilePath}"), logToConsole: true, logToFile: false);
+                File.Create(LogFilePath).Close();
+            }
+
+            string logEntry = $"{datetime} | {message.Level,-8} | {message.Module}:{message.Function}:{message.LineNumber} | {message.Text}";
             using (StreamWriter writer = new StreamWriter(LogFilePath, true))
             {
                 writer.WriteLine(logEntry);
             }
         }
+    }
+
+    public class FatalLogException : Exception
+    {
+        public FatalLogException(string message) : base(message) { }
+    }
+
+    public class ErrorLogException : Exception
+    {
+        public ErrorLogException(string message) : base(message) { }
     }
 }
