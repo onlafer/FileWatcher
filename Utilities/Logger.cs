@@ -71,8 +71,10 @@ namespace FileWatcher.Utilities
         public string Module { get; }
         public string Function { get; }
         public int LineNumber { get; }
+        public string Separator { get; set; }
+        public string DateTimeFormat { get; set; } = "yyyy-MM-dd HH:mm:ss.fff";
 
-        public LogMessage(LogLevel level, string text, string module, string function, int lineNumber)
+        public LogMessage(LogLevel level, string text, string module, string function, int lineNumber, string separator)
         {
             DateTimeNow = DateTime.Now;
             Level = level;
@@ -80,11 +82,12 @@ namespace FileWatcher.Utilities
             Module = module;
             Function = function;
             LineNumber = lineNumber;
+            Separator = separator;
         }
 
         public override string ToString()
         {
-            return $"{DateTimeNow:yyyy-MM-dd HH:mm:ss.fff} | {Level.Name,-8} | {Module}:{Function}:{LineNumber} | {Text}";
+            return $"{DateTimeNow.ToString(DateTimeFormat)}{Separator}{Level.Name,-8}{Separator}{Module}:{Function}:{LineNumber}{Separator}{Text}";
         }
     }
 
@@ -110,10 +113,11 @@ namespace FileWatcher.Utilities
             bool logToFile = false,
             string logFilePath = "",
             bool enableHandler = true,
+            string separator = " | ",
             Exception? exception = null
         )
         {
-            new Logger(logFilePath).Log(level, text, module, function, lineNumber, logToConsole, logToFile, enableHandler, exception);
+            new Logger(logFilePath).Log(level, text, module, function, lineNumber, logToConsole, logToFile, enableHandler, separator, exception);
         }
 
         public void Log(
@@ -125,10 +129,11 @@ namespace FileWatcher.Utilities
             bool logToConsole = true,
             bool logToFile = true,
             bool enableHandler = true,
+            string separator = " | ",
             Exception? exception = null
         )
         {
-            var message = new LogMessage(level, text, module, function, lineNumber);
+            var message = new LogMessage(level, text, module, function, lineNumber, separator);
 
             if (logToConsole)
             {
@@ -148,27 +153,31 @@ namespace FileWatcher.Utilities
 
         private void LogToConsole(LogMessage message)
         {
-            Console.ForegroundColor = ConsoleColor.Cyan;
+            const ConsoleColor DateTimeColor = ConsoleColor.Cyan;
+            const ConsoleColor ModuleColor = ConsoleColor.Magenta;
+            const ConsoleColor TextColor = ConsoleColor.Blue;
+
+            Console.ForegroundColor = DateTimeColor;
             Console.Write(message.DateTimeNow.ToString(DateTimeFormat));
-            WriteSeparator();
+            WriteSeparator(message.Separator);
 
             Console.ForegroundColor = message.Level.Color;
             Console.Write($"{message.Level.Name,-8}");
-            WriteSeparator();
+            WriteSeparator(message.Separator);
 
-            Console.ForegroundColor = ConsoleColor.Magenta;
+            Console.ForegroundColor = ModuleColor;
             Console.Write($"{message.Module}");
             WriteSeparator(":");
 
-            Console.ForegroundColor = ConsoleColor.Magenta;
+            Console.ForegroundColor = ModuleColor;
             Console.Write($"{message.Function}");
             WriteSeparator(":");
 
-            Console.ForegroundColor = ConsoleColor.Magenta;
+            Console.ForegroundColor = ModuleColor;
             Console.Write($"{message.LineNumber}");
-            WriteSeparator();
+            WriteSeparator(message.Separator);
 
-            Console.ForegroundColor = ConsoleColor.Blue;
+            Console.ForegroundColor = TextColor;
             Console.WriteLine(message.Text);
 
             Console.ForegroundColor = OriginalConsoleColor;

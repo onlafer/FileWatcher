@@ -1,6 +1,5 @@
 using FileWatcher.Config;
 using FileWatcher.Utilities;
-using System.Diagnostics;
 
 namespace FileWatcher.Services
 {
@@ -59,7 +58,6 @@ namespace FileWatcher.Services
 
         private void HandleEvent(WatchedDirectory watchedDir, string eventType, string fullPath, string? newPath = null)
         {
-            // Console.WriteLine($"Событие {eventType} обнаружено в {fullPath}"); Печать всех сообщений
             List<FileAction>? FileActions = GetFileActions(watchedDir, eventType);
             if (FileActions == null) return;
 

@@ -1,5 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-using FileWatcher.Config;
+﻿using FileWatcher.Config;
 using FileWatcher.Services;
 using FileWatcher.Utilities;
 
@@ -9,8 +8,6 @@ public class Program
     {
         Logger logger = new Logger("Logs\\log.txt");
         ConfigManager? config = JsonHelper.ReadConfig<ConfigManager>("Config\\config.json");
-
-        // logger.Log(new FatalLevel(), "Не удалось загрузить конфигурацию.");
 
         if (config != null)
         {
